@@ -82,23 +82,15 @@ public class Database {
         return this.loadFuture = ScheduledFuture.supplyAsync(() -> {
             try {
                 for(final CategoryEnum category : CategoryEnum.values()) {
-                    final HttpURLConnection connection = (HttpURLConnection) new URL(API_URL + "?cat=" + category.getIdentifier() + "&tags=true").openConnection();
-                    connection.setRequestProperty("User-Agent", "Chrome");
-                    connection.connect();
-
-                    if(connection.getResponseCode() == 200) {
-                        try(final InputStream inputStream = connection.getInputStream();
-                            final Reader reader = new InputStreamReader(inputStream)) {
-                            final List<Map<String, String>> values = GSON.<List<Map<String, String>>>fromJson(reader, List.class);
-                            final List<HeadEntry> headEntries = new ArrayList<>();
-                            for(Map<String, String> map : values)
-                                headEntries.add(new HeadEntry(map.get("name"), map.get("uuid"), map.get("value"), map.get("tags")));
-                            localHeadEntries.addAll(headEntries);
-                            localCategories.add(new Category(category, Iterables.getLast(headEntries).getTexture(), Collections.unmodifiableList(headEntries)));
-                        }
+                    try(final InputStream inputStream = this.headsDB.getResource("database/" + category.getIdentifier() + ".json");
+                        final Reader reader = new InputStreamReader(inputStream)) {
+                        final List<Map<String, String>> values = GSON.<List<Map<String, String>>>fromJson(reader, List.class);
+                        final List<HeadEntry> headEntries = new ArrayList<>();
+                        for(Map<String, String> map : values)
+                            headEntries.add(new HeadEntry(map.get("name"), map.get("uuid"), map.get("value"), map.get("tags")));
+                        localHeadEntries.addAll(headEntries);
+                        localCategories.add(new Category(category, Iterables.getLast(headEntries).getTexture(), Collections.unmodifiableList(headEntries)));
                     }
-
-                    connection.disconnect();
                 }
 
                 return true;
